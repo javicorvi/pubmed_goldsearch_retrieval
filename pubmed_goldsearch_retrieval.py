@@ -1,12 +1,15 @@
 import sys
-import subprocess 
 import xml.etree.ElementTree as ET
-import os, fnmatch
 import argparse
 import ConfigParser
 import httplib, urllib
-
 import codecs
+import os
+import logging
+import time
+
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+
 parser=argparse.ArgumentParser()
 parser.add_argument('-p', help='Path Parameters')
 args=parser.parse_args()
@@ -37,14 +40,14 @@ def ReadParameters(args):
         parameters['gold_anwser_file_classifier_format']=Config.get('MAIN', 'gold_anwser_file_classifier_format')
         parameters['gold_answer_classification_label']=Config.get('MAIN', 'gold_answer_classification_label')
         parameters['gold_answer_quantity_to_retrieve']=Config.get('MAIN', 'gold_answer_quantity_to_retrieve')
-       
     else:
-        print("Please send the correct parameters config.properties --help ")
+        logging.error("Please send the correct parameters config.properties --help ")
         sys.exit(1)
     return parameters   
 
 
 def download_goldanswer(pubmed_search_query, pubmed_result_output, classification_token, retmax=50000):   
+    logging.info("Downloading Gold Answer Query : " + pubmed_search_query + ".  Retmax : "  + retmax)
     params = urllib.urlencode({'db':'pubmed','rettype':'xml','retmode':'xml','term': pubmed_search_query, 'retmax':str(retmax)})
     conn = httplib.HTTPSConnection("eutils.ncbi.nlm.nih.gov")
     conn.request("POST", "/entrez/eutils/esearch.fcgi", params )
@@ -58,13 +61,13 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
         with codecs.open(pubmed_result_output,'w',encoding='utf8') as txt_file:
             for f in docXml.find("IdList").findall("Id") :
                 try:
-                    print f.text
+                    time.sleep(0.1)  
                     params = urllib.urlencode({'db':'pubmed','retmode':'xml','id':f.text})
                     conn2 = httplib.HTTPSConnection("eutils.ncbi.nlm.nih.gov")
                     conn2.request("POST", "/entrez/eutils/efetch.fcgi", params )
                     rf = conn2.getresponse()
                     if not rf.status == 200 :
-                        print "Error en la conexion: " + rf.status + " " + rf.reason 
+                        logging.error("Error en la conexion:   "  + rf.status + " " + rf.reason)
                         exit()
                     response_efetch = rf.read()
                     docXml_E = ET.fromstring(response_efetch) 
@@ -96,12 +99,12 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
                     rf.close
                     conn2.close()
                 except Exception as inst:
-                    print "Error Downloading " 
-                    print inst    
+                    logging.error("Error Downloading  " )
+                    logging.error("Error Downloading  " + inst)    
             txt_file.close()
         pmid_list_file.close()        
     rpub.close
     conn.close()         
-        
+    logging.info("Download End ")    
 
 
