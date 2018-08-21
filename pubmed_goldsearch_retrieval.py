@@ -25,9 +25,10 @@ def Main(parameters):
     gold_anwser_file_classifier_format=parameters['gold_anwser_file_classifier_format']
     gold_answer_quantity_to_retrieve=parameters['gold_answer_quantity_to_retrieve']
     gold_answer_classification_label=parameters['gold_answer_classification_label']
+    pubmed_api_key=parameters['pubmed_api_key']
     if not os.path.exists(gold_answer_folder):
         os.makedirs(gold_answer_folder)
-    download_goldanswer(pubmed_search_query, gold_anwser_file_classifier_format, gold_answer_classification_label, gold_answer_quantity_to_retrieve)
+    download_goldanswer(pubmed_search_query, gold_anwser_file_classifier_format, gold_answer_classification_label,  pubmed_api_key, gold_answer_quantity_to_retrieve)
     
     
     
@@ -40,20 +41,21 @@ def ReadParameters(args):
         parameters['gold_anwser_file_classifier_format']=Config.get('MAIN', 'gold_anwser_file_classifier_format')
         parameters['gold_answer_classification_label']=Config.get('MAIN', 'gold_answer_classification_label')
         parameters['gold_answer_quantity_to_retrieve']=Config.get('MAIN', 'gold_answer_quantity_to_retrieve')
+        parameters['pubmed_api_key']=Config.get('MAIN', 'pubmed_api_key')
     else:
         logging.error("Please send the correct parameters config.properties --help ")
         sys.exit(1)
     return parameters   
 
 
-def download_goldanswer(pubmed_search_query, pubmed_result_output, classification_token, retmax=50000):   
+def download_goldanswer(pubmed_search_query, pubmed_result_output, classification_token, pubmed_api_key, retmax=50000):
     logging.info("Downloading Gold Answer Query : " + pubmed_search_query + ".  Retmax : "  + retmax)
     params = urllib.urlencode({'db':'pubmed','rettype':'xml','retmode':'xml','term': pubmed_search_query, 'retmax':str(retmax)})
     conn = httplib.HTTPSConnection("eutils.ncbi.nlm.nih.gov")
     conn.request("POST", "/entrez/eutils/esearch.fcgi", params )
     rpub = conn.getresponse()
     if not rpub.status == 200 :
-        print "Error en la conexion: " + rpub.status + " " + rpub.reason 
+        logging.error("Error en la conexion:   "  + rpub.status + " " + rpub.reason)
         exit()
     response_pubmed = rpub.read()
     docXml = ET.fromstring(response_pubmed)
@@ -61,8 +63,8 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
         with codecs.open(pubmed_result_output,'w',encoding='utf8') as txt_file:
             for f in docXml.find("IdList").findall("Id") :
                 try:
-                    time.sleep(0.1)  
-                    params = urllib.urlencode({'db':'pubmed','retmode':'xml','id':f.text})
+                    #time.sleep(0.1)  
+                    params = urllib.urlencode({'db':'pubmed','retmode':'xml','id':f.text,'api_key':pubmed_api_key})
                     conn2 = httplib.HTTPSConnection("eutils.ncbi.nlm.nih.gov")
                     conn2.request("POST", "/entrez/eutils/efetch.fcgi", params )
                     rf = conn2.getresponse()
@@ -96,14 +98,14 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
                                             txt_file.flush()
                                             pmid_list_file.write(pmid+"\n")
                                             pmid_list_file.flush()   
-                    rf.close
+                    rf.close()
                     conn2.close()
                 except Exception as inst:
                     logging.error("Error Downloading  " )
                     logging.error("Error Downloading  " + inst)    
             txt_file.close()
         pmid_list_file.close()        
-    rpub.close
+    rpub.close()
     conn.close()         
     logging.info("Download End ")    
 
