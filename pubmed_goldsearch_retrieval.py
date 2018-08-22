@@ -5,9 +5,9 @@ import ConfigParser
 import httplib, urllib
 import codecs
 import os
-import logging
 import time
 
+import logging
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 parser=argparse.ArgumentParser()
