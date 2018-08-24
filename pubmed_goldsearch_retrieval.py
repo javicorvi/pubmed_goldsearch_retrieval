@@ -5,7 +5,7 @@ import ConfigParser
 import httplib, urllib
 import codecs
 import os
-import time
+
 
 import logging
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
@@ -83,17 +83,39 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
                             title_xml=article_xml.find("ArticleTitle")
                             if(title_xml!=None):
                                 title = title_xml.text
-                                if(title!=None):
-                                    art_txt = art_txt + title.replace("\n"," ").replace("\t"," ").replace("\r"," ") + "\t" 
+                                if(title==None):
+                                    title=""
+                                for child in title_xml:
+                                    if(child.text!=None):
+                                        title = title + child.text
+                                    if(child.tail!=None):    
+                                        title = title + child.tail
+                                if(title!=""):
+                                    art_txt = art_txt + remove_invalid_characters(title) + "\t" 
                                 else:
                                     art_txt = art_txt + " " + "\t"     
                                 abstract_xml = article_xml.find("Abstract")
                                 if(abstract_xml!=None):
                                     abstract_text = abstract_xml.find("AbstractText")
                                     if(abstract_text!=None):
-                                        abstract=abstract_text.text
-                                        if(abstract!=None):
-                                            art_txt = art_txt + abstract.replace("\n"," ").replace("\t"," ").replace("\r"," ") + "\n" 
+                                        abstract = abstract_text.text
+                                        if(abstract==None):
+                                            abstract=""
+                                        for child in abstract_text:
+                                            
+                                            if(child.text!=None):
+                                                abstract = abstract + child.text
+                                            for child2 in child:
+                                                logging.debug("This abstract has html tags anidated review " + pmid)
+                                                if(child2.text!=None):
+                                                    abstract = abstract + child2.text
+                                                if(child2.tail!=None):    
+                                                    abstract = abstract + child2.tail   
+                                            if(child.tail!=None):    
+                                                abstract = abstract + child.tail
+                                        #print abstract
+                                        if(abstract!=""):
+                                            art_txt = art_txt + remove_invalid_characters(abstract) + "\n"
                                             txt_file.write(art_txt)
                                             txt_file.flush()
                                             pmid_list_file.write(pmid+"\n")
@@ -102,11 +124,12 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
                     conn2.close()
                 except Exception as inst:
                     logging.error("Error Downloading  " )
-                    logging.error("Error Downloading  " + inst)    
             txt_file.close()
         pmid_list_file.close()        
     rpub.close()
     conn.close()         
     logging.info("Download End ")    
 
-
+def remove_invalid_characters(text):
+    text = text.replace("\n"," ").replace("\t"," ").replace("\r"," ")    
+    return text
