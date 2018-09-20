@@ -65,6 +65,8 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
                 try:
                     #time.sleep(0.1)  
                     params = urllib.urlencode({'db':'pubmed','retmode':'xml','id':f.text,'api_key':pubmed_api_key})
+                    #params = urllib.urlencode({'db':'pubmed','retmode':'xml','id':'30126246','api_key':pubmed_api_key})
+                    
                     conn2 = httplib.HTTPSConnection("eutils.ncbi.nlm.nih.gov")
                     conn2.request("POST", "/entrez/eutils/efetch.fcgi", params )
                     rf = conn2.getresponse()
@@ -81,54 +83,73 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
                         abstract_xml = article_xml.find("Abstract")
                         if(abstract_xml!=None):
                             title_xml=article_xml.find("ArticleTitle")
-                            if(title_xml!=None):
-                                title = title_xml.text
-                                if(title==None):
-                                    title=""
-                                for child in title_xml:
-                                    if(child.text!=None):
-                                        title = title + child.text
-                                    if(child.tail!=None):    
-                                        title = title + child.tail
-                                if(title!=""):
-                                    art_txt = art_txt + remove_invalid_characters(title) + "\t" 
-                                else:
-                                    art_txt = art_txt + " " + "\t"     
-                                abstract_xml = article_xml.find("Abstract")
-                                if(abstract_xml!=None):
-                                    abstract_text = abstract_xml.find("AbstractText")
-                                    if(abstract_text!=None):
-                                        abstract = abstract_text.text
-                                        if(abstract==None):
-                                            abstract=""
-                                        for child in abstract_text:
-                                            
-                                            if(child.text!=None):
-                                                abstract = abstract + child.text
-                                            for child2 in child:
-                                                logging.debug("This abstract has html tags anidated review " + pmid)
-                                                if(child2.text!=None):
-                                                    abstract = abstract + child2.text
-                                                if(child2.tail!=None):    
-                                                    abstract = abstract + child2.tail   
-                                            if(child.tail!=None):    
-                                                abstract = abstract + child.tail
-                                        #print abstract
-                                        if(abstract!=""):
-                                            art_txt = art_txt + remove_invalid_characters(abstract) + "\n"
-                                            txt_file.write(art_txt)
-                                            txt_file.flush()
-                                            pmid_list_file.write(pmid+"\n")
-                                            pmid_list_file.flush()   
+                            title = readTitle(title_xml)
+                            if(title!=""):
+                                art_txt = art_txt + remove_invalid_characters(title) + "\t" 
+                            else:
+                                art_txt = art_txt + " " + "\t"     
+                            abstract_xml = article_xml.find("Abstract")
+                            abstract = readAbstract(abstract_xml)
+                            art_txt = art_txt + remove_invalid_characters(abstract) + "\n"
+                            data=art_txt.split('\t')
+                            if(len(data)==4):
+                                txt_file.write(art_txt)
+                                txt_file.flush()
+                                pmid_list_file.write(pmid+"\n")
+                                pmid_list_file.flush()
+                            else:
+                                logging.error("Error Downloading  " + pmid + ". The document does not have a well tabulation format. The line: ")
+                                logging.error(art_txt)
                     rf.close()
                     conn2.close()
                 except Exception as inst:
-                    logging.error("Error Downloading  " )
+                    logging.error("Error Downloading  " + str(inst) )
             txt_file.close()
         pmid_list_file.close()        
     rpub.close()
     conn.close()         
-    logging.info("Download End ")    
+    logging.info("Download End ")  
+
+
+def readTitle(title_xml):
+    if(title_xml!=None):
+        title=''.join(itertext_title(title_xml))
+        return title
+    return ''
+def readAbstract(abstract_xml):
+    if(abstract_xml!=None):
+        abstract = ''.join(itertext_abstract(abstract_xml))
+        return abstract 
+    return ''
+def itertext_title(self):
+    tag = self.tag
+    if not isinstance(tag, str) and tag is not None:
+        return
+    if self.text:
+        yield self.text.strip()
+    for e in self:
+        for s in e.itertext():
+            yield s.strip()
+        if e.tail:
+            yield e.tail.strip()
+            
+def itertext_abstract(self):
+    tag = self.tag
+    if not isinstance(tag, str) and tag is not None:
+        return
+    if self.text:
+        yield self.text.strip()
+        for e in self:
+            tag2=e.tag
+            if isinstance(tag2, str) and tag2 is not None and tag2 in ['AbstractText']: 
+                for s in e.itertext():
+                    yield s.strip()
+                if e.tail:
+                    yield e.tail.strip()
+            elif tag2 not in ['CopyrightInformation']:
+                print tag2        
+    else:
+        print "no text"            
 
 def remove_invalid_characters(text):
     text = text.replace("\n"," ").replace("\t"," ").replace("\r"," ")    
