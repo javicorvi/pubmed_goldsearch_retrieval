@@ -65,7 +65,7 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
                 try:
                     #time.sleep(0.1)  
                     params = urllib.urlencode({'db':'pubmed','retmode':'xml','id':f.text,'api_key':pubmed_api_key})
-                    #params = urllib.urlencode({'db':'pubmed','retmode':'xml','id':'30126246','api_key':pubmed_api_key})
+                    #params = urllib.urlencode({'db':'pubmed','retmode':'xml','id':'23424122','api_key':pubmed_api_key})
                     
                     conn2 = httplib.HTTPSConnection("eutils.ncbi.nlm.nih.gov")
                     conn2.request("POST", "/entrez/eutils/efetch.fcgi", params )
@@ -81,7 +81,8 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
                         art_txt = classification_token + "\t" + pmid + "\t"    
                         article_xml = article.find("MedlineCitation").find("Article")
                         abstract_xml = article_xml.find("Abstract")
-                        if(abstract_xml!=None):
+                        abstract = readAbstract(abstract_xml)
+                        if(abstract!=''):
                             title_xml=article_xml.find("ArticleTitle")
                             title = readTitle(title_xml)
                             if(title!=""):
@@ -89,7 +90,6 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
                             else:
                                 art_txt = art_txt + " " + "\t"     
                             abstract_xml = article_xml.find("Abstract")
-                            abstract = readAbstract(abstract_xml)
                             art_txt = art_txt + remove_invalid_characters(abstract) + "\n"
                             data=art_txt.split('\t')
                             if(len(data)==4):
