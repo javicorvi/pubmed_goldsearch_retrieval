@@ -64,6 +64,7 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
             for f in docXml.find("IdList").findall("Id") :
                 try:
                     #time.sleep(0.1)  
+                    #to do add &sort=relevance as a parameter
                     params = urllib.urlencode({'db':'pubmed','retmode':'xml','id':f.text,'api_key':pubmed_api_key})
                     #params = urllib.urlencode({'db':'pubmed','retmode':'xml','id':'23424122','api_key':pubmed_api_key})
                     
