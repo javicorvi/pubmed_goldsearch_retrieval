@@ -65,7 +65,7 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
                 try:
                     #time.sleep(0.1)  
                     #to do add &sort=relevance as a parameter
-                    params = urllib.urlencode({'db':'pubmed','retmode':'xml','id':f.text,'api_key':pubmed_api_key})
+                    params = urllib.urlencode({'db':'pubmed','retmode':'xml','id':f.text,'sort':'relevance','api_key':pubmed_api_key})
                     #params = urllib.urlencode({'db':'pubmed','retmode':'xml','id':'23424122','api_key':pubmed_api_key})
                     
                     conn2 = httplib.HTTPSConnection("eutils.ncbi.nlm.nih.gov")
@@ -104,7 +104,7 @@ def download_goldanswer(pubmed_search_query, pubmed_result_output, classificatio
                     rf.close()
                     conn2.close()
                 except Exception as inst:
-                    logging.error("Error Downloading  " + str(inst) )
+                    logging.error("Error Downloading  " + f.text )
             txt_file.close()
         pmid_list_file.close()        
     rpub.close()
